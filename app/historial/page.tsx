@@ -1,24 +1,24 @@
 "use client";
+import { useState } from "react";
 import { useApp } from "../dashboard/layout";
 import { DARK, LIGHT, fmt, keyLabel, CATEGORIES } from "@/lib/constants";
 import { expensesService } from "@/lib/services";
+import { getLucideIcon } from "@/lib/lucide-icons";
 
 function Ico({ name, size=20, color="currentColor" }: { name:string; size?:number; color?:string }) {
   const p = { fill:"none", stroke:color, strokeWidth:2, strokeLinecap:"round" as const, strokeLinejoin:"round" as const };
   const map: Record<string,React.ReactNode> = {
-    comida:      <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
-    supermercado:<svg width={size} height={size} viewBox="0 0 24 24" {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
-    transporte:  <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M8 6v6M15 6v6M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>,
-    servicios:   <svg width={size} height={size} viewBox="0 0 24 24" {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-    ocio:        <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>,
-    salud:       <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
-    otros:       <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l7.29-7.29a1 1 0 0 0 0-1.41Z"/><circle cx="7" cy="7" r="1.5" fill={color} stroke="none"/></svg>,
     receipt:     <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>,
     chevLeft:    <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="m15 18-6-6 6-6"/></svg>,
     chevRight:   <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="m9 18 6-6-6-6"/></svg>,
     x:           <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>,
   };
   return <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{map[name]||null}</span>;
+}
+
+function CategoryIcon({ name, size=20, color="currentColor" }: { name:string; size?:number; color?:string }) {
+  const Icon = getLucideIcon(name);
+  return <Icon size={size} color={color} />;
 }
 
 const NOW_KEY = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })();
@@ -28,10 +28,15 @@ export default function HistorialPage() {
   const t   = dark ? DARK : LIGHT;
   const pad = wide ? "28px" : "16px";
 
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<number|null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const monthExpenses = expenses.filter(e => e.expense_date.startsWith(selectedMonth));
   const total         = monthExpenses.reduce((a,e) => a+Number(e.amount), 0);
 
-  const availableMonths = [...new Set(expenses.map(e=>e.expense_date.slice(0,7)))].sort();
+  const availableMonthsSet = new Set(expenses.map(e=>e.expense_date.slice(0,7)));
+  const availableMonths = Array.from(availableMonthsSet).sort();
   if (!availableMonths.includes(selectedMonth)) availableMonths.push(selectedMonth);
   const sortedKeys = [...availableMonths].sort();
   const idx     = sortedKeys.indexOf(selectedMonth);
@@ -42,12 +47,27 @@ export default function HistorialPage() {
   monthExpenses.forEach(e => { if(!grouped[e.expense_date]) grouped[e.expense_date]=[]; grouped[e.expense_date].push(e); });
   const dates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
 
-  const handleRemove = async (id: number) => {
-    if (!confirm("¿Eliminar este gasto?")) return;
+  const openDeleteModal = (id: number) => {
+    setExpenseToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setExpenseToDelete(null);
+    setDeleting(false);
+  };
+
+  const handleRemove = async () => {
+    if (!expenseToDelete || !token) return;
+    setDeleting(true);
     try {
-      await expensesService.remove(id, token);
-      setExpenses(prev => prev.filter(e => e.id !== id));
-    } catch { /* ignorar */ }
+      await expensesService.remove(expenseToDelete, token);
+      setExpenses(prev => prev.filter(e => e.id !== expenseToDelete));
+      closeDeleteModal();
+    } catch {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -89,16 +109,15 @@ export default function HistorialPage() {
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:7}}>
               {items.map(exp => {
-                const cat = CATEGORIES.find(c=>c.id===exp.category.icon)||CATEGORIES[6];
                 return (
                   <div key={exp.id} style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"11px 14px",display:"flex",alignItems:"center",gap:12,boxShadow:dark?"none":"0 1px 3px rgba(0,0,0,.04)"}}>
-                    <div style={{width:42,height:42,borderRadius:12,flexShrink:0,background:dark?cat.darkBg:cat.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><Ico name={cat.id} size={19} color={cat.color}/></div>
+                    <div style={{width:42,height:42,borderRadius:12,flexShrink:0,background:dark?"rgba(255,255,255,.06)":"rgba(0,0,0,.04)",display:"flex",alignItems:"center",justifyContent:"center"}}><CategoryIcon name={exp.category.icon} size={19} color={exp.category.color}/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:14,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exp.merchant||exp.category.name}</div>
                       <div style={{fontSize:11,color:t.muted,marginTop:2,fontWeight:600}}>{exp.category.name}</div>
                     </div>
                     <div style={{fontWeight:800,fontSize:14,color:t.text,flexShrink:0,fontVariantNumeric:"tabular-nums"}}>{fmt(Number(exp.amount))}</div>
-                    <button onClick={()=>handleRemove(exp.id)} style={{background:"none",border:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",opacity:.4,transition:"opacity .15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity=".4"}><Ico name="x" size={14} color="#ef4444"/></button>
+                    <button onClick={()=>openDeleteModal(exp.id)} style={{background:"none",border:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",opacity:.4,transition:"opacity .15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity=".4"}><CategoryIcon name="trash-2" size={14} color="#ef4444"/></button>
                   </div>
                 );
               })}
@@ -106,6 +125,23 @@ export default function HistorialPage() {
           </div>
         );
       })}
+      {deleteModalOpen && (
+        <div style={{position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(15,23,42,.54)",padding:16}}>
+          <div style={{width:"min(400px,100%)",background:t.card,border:`1px solid ${t.border}`,borderRadius:24,boxShadow:"0 28px 80px rgba(15,23,42,.22)",padding:24,position:"relative"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:18}}>
+              <div>
+                <div style={{fontSize:18,fontWeight:900,color:t.text}}>Eliminar gasto</div>
+                <div style={{fontSize:13,color:t.muted,marginTop:6}}>¿Estás seguro de que querés eliminar este gasto? Esta acción no se puede deshacer.</div>
+              </div>
+              <button type="button" onClick={closeDeleteModal} style={{width:38,height:38,borderRadius:12,border:"none",background:dark?"rgba(255,255,255,.06)":"#f1f5f9",cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ico name="x" size={18} color={t.muted}/></button>
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button type="button" onClick={closeDeleteModal} disabled={deleting} style={{flex:1,padding:"14px 16px",borderRadius:16,border:`1px solid ${t.border}`,background:"transparent",color:t.muted,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancelar</button>
+              <button type="button" onClick={handleRemove} disabled={deleting} style={{flex:1,padding:"14px 16px",borderRadius:16,border:"none",background:"#ef4444",color:"white",fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{deleting ? "Eliminando..." : "Eliminar gasto"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
