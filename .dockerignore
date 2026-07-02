@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+Dockerfile
+.dockerignore
+docker-compose.yml
+render.yaml
+npm-debug.log*
+*.stackdump
+*.tsbuildinfo
+.env*
+.claude
+README.md
+CLAUDE.md

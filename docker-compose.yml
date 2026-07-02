@@ -1,0 +1,16 @@
+# Uso local: `docker compose up --build`
+# Levanta el frontend en modo producción (imagen del Dockerfile) en http://localhost:3001
+# Nota: Render NO usa este archivo para desplegar (usa el Dockerfile / render.yaml);
+# este compose es para correr/probar localmente la imagen de deploy.
+services:
+  web:
+    build:
+      context: .
+      args:
+        # URL del backend embebida en el build del cliente.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped

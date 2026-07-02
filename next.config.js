@@ -30,6 +30,8 @@ const securityHeaders = [
 ];
 
 module.exports = {
+  // Salida standalone: build autocontenido para una imagen Docker mínima.
+  output: "standalone",
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

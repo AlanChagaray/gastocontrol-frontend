@@ -1,0 +1,15 @@
+# Render Blueprint — despliega el frontend como Web Service basado en Docker.
+# Importalo desde el dashboard de Render (Blueprints) apuntando a este repo.
+services:
+  - type: web
+    name: gastocontrol-frontend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /login
+    envVars:
+      # Editá el valor en el dashboard con la URL real del backend desplegado.
+      # Render la pasa como build-arg (NEXT_PUBLIC_* debe estar en build).
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
