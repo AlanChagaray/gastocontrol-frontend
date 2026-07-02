@@ -48,7 +48,11 @@ export default function AgregarPage() {
   useEffect(() => {
     if (!token) return;
     categoriesService.getCategories(token)
-      .then(setCategories)
+      .then(cats => {
+        setCategories(cats);
+        // Preseleccionar la primera categoría (el backend las devuelve por sort_order)
+        setCategory(prev => prev ?? cats[0] ?? null);
+      })
       .catch(console.error)
       .finally(() => setCategoriesLoading(false));
   }, [token]);
@@ -80,7 +84,7 @@ export default function AgregarPage() {
     try {
       const payload = { name, icon: categoryIconInput };
       const saved = await categoriesService.create(payload, token);
-      setCategories(prev => [saved, ...prev]);
+      setCategories(prev => [...prev, saved]);
       setCategory(saved);
       closeCategoryModal();
     } catch (err) {
@@ -172,10 +176,11 @@ export default function AgregarPage() {
               <div style={{display:"grid",gridTemplateColumns:`repeat(${wide?6:3},1fr)`,gap:8}}>
                 {categories.map(cat=>{
                   const sel=category?.id===cat.id;
+                  const color=cat.color||"#3b82f6";
                   return (
-                    <button key={cat.id} onClick={()=>setCategory(cat)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"10px 4px",borderRadius:14,border:`2px solid ${sel?cat.color+"60":t.border}`,background:sel?cat.color+"18":t.card,cursor:"pointer",transition:"all .14s",transform:sel?"scale(1.05)":"scale(1)",boxShadow:sel?`0 4px 12px ${cat.color}30`:"none",fontFamily:"inherit"}}>
-                      <div style={{width:38,height:38,borderRadius:11,background:sel?cat.color+"25":(dark?"rgba(255,255,255,.05)":"#f1f5f9"),display:"flex",alignItems:"center",justifyContent:"center"}}><CategoryIcon name={cat.icon} size={18} color={sel?cat.color:t.muted}/></div>
-                      <span style={{fontSize:10,fontWeight:sel?800:600,color:sel?cat.color:t.label,whiteSpace:"nowrap"}}>{cat.name}</span>
+                    <button key={cat.id} onClick={()=>setCategory(cat)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"10px 4px",borderRadius:14,border:`2px solid ${sel?color+"60":t.border}`,background:sel?color+"18":t.card,cursor:"pointer",transition:"all .14s",transform:sel?"scale(1.05)":"scale(1)",boxShadow:sel?`0 4px 12px ${color}30`:"none",fontFamily:"inherit"}}>
+                      <div style={{width:38,height:38,borderRadius:11,background:sel?color+"25":(dark?"rgba(255,255,255,.05)":"#f1f5f9"),display:"flex",alignItems:"center",justifyContent:"center"}}><CategoryIcon name={cat.icon} size={18} color={sel?color:t.muted}/></div>
+                      <span style={{fontSize:10,fontWeight:sel?800:600,color:sel?color:t.label,whiteSpace:"nowrap"}}>{cat.name}</span>
                     </button>
                   );
                 })}

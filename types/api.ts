@@ -1,8 +1,9 @@
 // Exact shape of what the Laravel API returns
 
 export interface UserResponse {
-  id: number; first_name: string; last_name: string; email: string;  
+  id: number; first_name: string; last_name: string; email: string;
   email_verified_at: string|null; created_at: string;
+  full_name?: string; provider?: string|null;
 }
 export interface AuthResponse { token: string; user: UserResponse; }
 export interface MessageResponse { message: string; }

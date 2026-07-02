@@ -3,11 +3,12 @@
  * Dashboard — replica exacta del DashboardPage del demo
  * Lee estado desde AppContext (layout.tsx)
  */
-import type { ComponentType } from "react";
 import { useApp } from "./layout";
-import { DARK, LIGHT, fmt, keyLabel, CATEGORIES } from "@/lib/constants";
+import { DARK, LIGHT, fmt, keyLabel } from "@/lib/constants";
+import { getLucideIcon } from "@/lib/lucide-icons";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { ChevronLeft, ChevronRight, Clock, TrendingUp, TrendingDown, Pencil, Receipt, BarChart as LucideBarChart, ShoppingCart, Truck, Wrench, Food, Star, HeartPulse, MoreHorizontal } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, TrendingUp, TrendingDown, Pencil, Receipt, BarChart as LucideBarChart, ShoppingCart, Truck, Wrench, UtensilsCrossed, Star, HeartPulse, MoreHorizontal } from "lucide-react";
 
 const MONTHS_SHT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const NOW_KEY = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })();
@@ -15,8 +16,8 @@ const NOW_KEY = (() => { const d=new Date(); return `${d.getFullYear()}-${String
 function keyToDate(k: string) { const [y,m]=k.split("-"); return new Date(Number(y),Number(m)-1,1); }
 
 function Icon({ name, size = 20, color = "currentColor" }: { name:string; size?:number; color?:string }) {
-  const map: Record<string, ComponentType<{ size?: number; color?: string }>> = {
-    comida:      Food,
+  const map: Record<string, LucideIcon> = {
+    comida:      UtensilsCrossed,
     supermercado: ShoppingCart,
     transporte:  Truck,
     servicios:   Wrench,
@@ -51,7 +52,6 @@ export default function DashboardPage() {
     ...expenses.map(e => e.expense_date.slice(0,7)),
     selectedMonth,
   ])).sort();
-  console.log(availableMonths);
   const sortedKeys = availableMonths;
   const idx        = sortedKeys.indexOf(selectedMonth);
   const prevKey    = idx > 0 ? sortedKeys[idx-1] : null;
@@ -218,10 +218,11 @@ export default function DashboardPage() {
           ) : (
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {monthExpenses.slice(0,5).map(exp => {
-                const cat = CATEGORIES.find(c=>c.id===exp.category.icon) || CATEGORIES[6];
+                const CatIcon  = getLucideIcon(exp.category.icon);
+                const catColor = exp.category.color || "#94a3b8";
                 return (
                   <div key={exp.id} style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"11px 14px",display:"flex",alignItems:"center",gap:12,boxShadow:dark?"none":"0 1px 3px rgba(0,0,0,.04)"}}>
-                    <div style={{width:42,height:42,borderRadius:12,flexShrink:0,background:dark?cat.darkBg:cat.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name={cat.id} size={19} color={cat.color}/></div>
+                    <div style={{width:42,height:42,borderRadius:12,flexShrink:0,background:`${catColor}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><CatIcon size={19} color={catColor}/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:14,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exp.merchant||exp.category.name}</div>
                       <div style={{fontSize:11,color:t.muted,marginTop:2,fontWeight:600}}>{exp.category.name} · {new Date(exp.expense_date+"T12:00:00").toLocaleDateString("es-AR",{day:"2-digit",month:"short"})}</div>

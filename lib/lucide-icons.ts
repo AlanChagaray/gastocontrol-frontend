@@ -2,7 +2,7 @@
  * Mapeo de iconos de Lucide para categorías
  * 20 iconos adaptados para diferentes tipos de gastos
  */
-import type { ComponentType } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   UtensilsCrossed,     // Comida
   ShoppingCart,        // Supermercado
@@ -24,9 +24,12 @@ import {
   Music,               // Música
   Plane,               // Viajes
   MoreHorizontal,      // Otros
+  ShieldCheck,         // Seguros
+  CreditCard,          // Créditos
+  PawPrint,            // Mascotas
 } from "lucide-react";
 
-export const LUCIDE_CATEGORY_ICONS: Record<string, ComponentType<{ size?: number; color?: string }>> = {
+export const LUCIDE_CATEGORY_ICONS: Record<string, LucideIcon> = {
   utensilsCrossed: UtensilsCrossed,
   shoppingCart: ShoppingCart,
   car: Car,
@@ -47,31 +50,41 @@ export const LUCIDE_CATEGORY_ICONS: Record<string, ComponentType<{ size?: number
   music: Music,
   plane: Plane,
   more: MoreHorizontal,
+  shieldCheck: ShieldCheck,
+  creditCard: CreditCard,
+  pawPrint: PawPrint,
+  // Alias de los slugs que usa el backend (seeder/factory): food/transport/entertainment/shopping/health/other
+  food: UtensilsCrossed,
+  transport: Car,
+  entertainment: Gamepad2,
+  shopping: ShoppingCart,
+  health: Heart,
+  other: MoreHorizontal,
 };
 
 export const ICON_OPTIONS = [
-  { id: "utensilsCrossed", name: "Comida" },
-  { id: "shoppingCart", name: "Compras" },
-  { id: "car", name: "Auto/Coche" },
-  { id: "wrench", name: "Servicios" },
+  // Categorías por defecto (orden principal)
+  { id: "shoppingCart", name: "Supermercado" },
+  { id: "home", name: "Alquiler" },
+  { id: "shieldCheck", name: "Seguros" },
+  { id: "dumbbell", name: "Deportes" },
+  // Resto de categorías disponibles
+  { id: "car", name: "Auto" },
   { id: "gamepad", name: "Entretenimiento" },
   { id: "heart", name: "Salud" },
-  { id: "zap", name: "Energía" },
-  { id: "home", name: "Vivienda" },
   { id: "graduation", name: "Educación" },
-  { id: "dumbbell", name: "Deportes" },
-  { id: "coffee", name: "Bebidas" },
+  { id: "creditCard", name: "Créditos" },
+  { id: "pawPrint", name: "Mascotas" },
   { id: "pill", name: "Medicinas" },
   { id: "wifi", name: "Internet" },
   { id: "bus", name: "Transporte" },
   { id: "smartphone", name: "Teléfono" },
-  { id: "palette", name: "Arte" },
   { id: "gift", name: "Regalos" },
   { id: "music", name: "Música" },
   { id: "plane", name: "Viajes" },
   { id: "more", name: "Otros" },
 ];
 
-export function getLucideIcon(iconName: string): ComponentType<{ size?: number; color?: string }> {
+export function getLucideIcon(iconName: string): LucideIcon {
   return LUCIDE_CATEGORY_ICONS[iconName] || LUCIDE_CATEGORY_ICONS["more"];
 }

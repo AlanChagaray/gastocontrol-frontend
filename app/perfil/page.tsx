@@ -42,7 +42,7 @@ export default function PerfilPage() {
     if(!token)return;
     const month = currentMonthKey();
     Promise.all([
-      usersService.getProfile(token).then(p=>{ setProfile(p[0]); }),
+      usersService.getProfile(token).then(p=>{ setProfile(p); }).catch(()=>setProfile(null)),
       usersService.getIncome(month, token).then(i => setIncome(Number(i.amount))).catch(() => setIncome(0))
     ]).finally(()=>setLoading(false));
   },[token]);
@@ -57,13 +57,6 @@ export default function PerfilPage() {
   const initials   = `${profile.first_name}${profile.last_name}`.toUpperCase();
 
   const pwValid = pw.next.length>=6 && pw.next===pw.confirm;
-
-  const saveName = async () => {
-    if(!nameVal.trim())return;
-    const [first_name,...rest] = nameVal.trim().split(" ");
-    const last_name = rest.join(" ")||profile.last_name;
-    try { const updated=await usersService.updateProfile({first_name,last_name},token); setProfile(updated); setNameSaved(true); setEditName(false); setTimeout(()=>setNameSaved(false),2000); } catch{}
-  };
 
   const savePw = async () => {
     if(!pwValid) return;

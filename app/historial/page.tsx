@@ -4,6 +4,7 @@ import { useApp } from "../dashboard/layout";
 import { DARK, LIGHT, fmt, keyLabel, CATEGORIES } from "@/lib/constants";
 import { expensesService } from "@/lib/services";
 import { getLucideIcon } from "@/lib/lucide-icons";
+import { Trash2 } from "lucide-react";
 
 function Ico({ name, size=20, color="currentColor" }: { name:string; size?:number; color?:string }) {
   const p = { fill:"none", stroke:color, strokeWidth:2, strokeLinecap:"round" as const, strokeLinejoin:"round" as const };
@@ -12,6 +13,9 @@ function Ico({ name, size=20, color="currentColor" }: { name:string; size?:numbe
     chevLeft:    <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="m15 18-6-6 6-6"/></svg>,
     chevRight:   <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="m9 18 6-6-6-6"/></svg>,
     x:           <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>,
+    trendUp:     <svg width={size} height={size} viewBox="0 0 24 24" {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+    trendDown:   <svg width={size} height={size} viewBox="0 0 24 24" {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>,
+    wallet:      <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
   };
   return <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{map[name]||null}</span>;
 }
@@ -24,7 +28,7 @@ function CategoryIcon({ name, size=20, color="currentColor" }: { name:string; si
 const NOW_KEY = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })();
 
 export default function HistorialPage() {
-  const { dark, wide, token, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
+  const { dark, wide, token, income, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
   const t   = dark ? DARK : LIGHT;
   const pad = wide ? "28px" : "16px";
 
@@ -34,6 +38,7 @@ export default function HistorialPage() {
 
   const monthExpenses = expenses.filter(e => e.expense_date.startsWith(selectedMonth));
   const total         = monthExpenses.reduce((a,e) => a+Number(e.amount), 0);
+  const balance       = income - total;
 
   const availableMonthsSet = new Set(expenses.map(e=>e.expense_date.slice(0,7)));
   const availableMonths = Array.from(availableMonthsSet).sort();
@@ -82,11 +87,27 @@ export default function HistorialPage() {
         </div>
       </div>
 
-      <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:40,height:40,borderRadius:12,background:dark?"#172554":"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ico name="receipt" size={18} color="#3b82f6"/></div>
-        <div>
-          <div style={{fontSize:11,fontWeight:600,color:t.muted}}>{monthExpenses.length} transacciones · {keyLabel(selectedMonth)}</div>
-          <div style={{fontSize:20,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(total)}</div>
+      <div style={{display:"grid",gridTemplateColumns:wide?"1fr 1fr 1fr":"1fr",gap:12}}>
+        <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:40,height:40,borderRadius:12,background:dark?"#172554":"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ico name="receipt" size={18} color="#3b82f6"/></div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.muted}}>Total gastado · {monthExpenses.length} transacciones</div>
+            <div style={{fontSize:20,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(total)}</div>
+          </div>
+        </div>
+        <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:40,height:40,borderRadius:12,background:dark?"#052e16":"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ico name="wallet" size={18} color="#22c55e"/></div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.muted}}>Ingreso del mes</div>
+            <div style={{fontSize:20,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(income)}</div>
+          </div>
+        </div>
+        <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:40,height:40,borderRadius:12,background:balance>=0?(dark?"#052e16":"#f0fdf4"):(dark?"#450a0a":"#fef2f2"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ico name={balance>=0?"trendUp":"trendDown"} size={18} color={balance>=0?"#22c55e":"#ef4444"}/></div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:11,fontWeight:600,color:t.muted}}>Balance</div>
+            <div style={{fontSize:20,fontWeight:900,color:balance>=0?"#22c55e":"#ef4444",fontVariantNumeric:"tabular-nums"}}>{fmt(balance)}</div>
+          </div>
         </div>
       </div>
 
@@ -117,7 +138,7 @@ export default function HistorialPage() {
                       <div style={{fontSize:11,color:t.muted,marginTop:2,fontWeight:600}}>{exp.category.name}</div>
                     </div>
                     <div style={{fontWeight:800,fontSize:14,color:t.text,flexShrink:0,fontVariantNumeric:"tabular-nums"}}>{fmt(Number(exp.amount))}</div>
-                    <button onClick={()=>openDeleteModal(exp.id)} style={{background:"none",border:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",opacity:.4,transition:"opacity .15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity=".4"}><CategoryIcon name="trash-2" size={14} color="#ef4444"/></button>
+                    <button onClick={()=>openDeleteModal(exp.id)} style={{background:"none",border:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",opacity:.4,transition:"opacity .15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity=".4"}><Trash2 size={14} color="#ef4444"/></button>
                   </div>
                 );
               })}

@@ -80,8 +80,8 @@ function SideNav({ dark }: { dark:boolean }) {
   const t = dark ? DARK : LIGHT;
   const items = [
     {id:"dashboard", label:"Inicio",       icon:"dashboard", path:"/dashboard"},
-    {id:"historial", label:"Historial",    icon:"history",   path:"/historial"},
     {id:"agregar",   label:"Agregar gasto",icon:"plus",      path:"/agregar"},
+    {id:"historial", label:"Historial",    icon:"history",   path:"/historial"},
     {id:"perfil",    label:"Perfil",       icon:"user",      path:"/perfil"},
   ];
   return (
@@ -201,7 +201,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hasSide = width >= 768;
   const wide    = width >= 860;
 
-  const [dark,           setDark]           = useState(() => {
+  const [dark,           setDark]           = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("darkMode");
       return stored ? JSON.parse(stored) : false;
