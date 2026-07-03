@@ -28,7 +28,7 @@ function CategoryIcon({ name, size=20, color="currentColor" }: { name:string; si
 const NOW_KEY = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })();
 
 export default function HistorialPage() {
-  const { dark, wide, token, income, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
+  const { dark, wide, token, totalIncome, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
   const t   = dark ? DARK : LIGHT;
   const pad = wide ? "28px" : "16px";
 
@@ -38,7 +38,7 @@ export default function HistorialPage() {
 
   const monthExpenses = expenses.filter(e => e.expense_date.startsWith(selectedMonth));
   const total         = monthExpenses.reduce((a,e) => a+Number(e.amount), 0);
-  const balance       = income - total;
+  const balance       = totalIncome - total;
 
   const availableMonthsSet = new Set(expenses.map(e=>e.expense_date.slice(0,7)));
   const availableMonths = Array.from(availableMonthsSet).sort();
@@ -99,7 +99,7 @@ export default function HistorialPage() {
           <div style={{width:40,height:40,borderRadius:12,background:dark?"#052e16":"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ico name="wallet" size={18} color="#22c55e"/></div>
           <div style={{minWidth:0}}>
             <div style={{fontSize:11,fontWeight:600,color:t.muted}}>Ingreso del mes</div>
-            <div style={{fontSize:20,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(income)}</div>
+            <div style={{fontSize:20,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(totalIncome)}</div>
           </div>
         </div>
         <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:16,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>

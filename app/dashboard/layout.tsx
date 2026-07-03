@@ -8,9 +8,9 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { authService, usersService, expensesService } from "@/lib/services";
+import { expensesService, incomesService } from "@/lib/services";
 import { DARK, LIGHT, keyLabel, currentMonthKey, fmt, CATEGORIES } from "@/lib/constants";
-import type { ExpenseResponse, MonthlyIncomeResponse } from "@/types/api";
+import type { ExpenseResponse, IncomeResponse } from "@/types/api";
 
 // ─── Loading Component ──────────────────────────────────────────────────────
 function Loading({ dark }: { dark: boolean }) {
@@ -47,6 +47,7 @@ function Ico({ name, size=20, color="currentColor" }: { name:string; size?:numbe
     moon:      <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
     x:         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>,
     pencil:    <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+    trash:     <svg width={size} height={size} viewBox="0 0 24 24" {...p}><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6"/><path d="M10 11v6M14 11v6"/></svg>,
   };
   return <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{map[name]||null}</span>;
 }
@@ -132,39 +133,91 @@ function BottomNav({ dark }: { dark:boolean }) {
   );
 }
 
-// ─── Income Modal (del demo) ──────────────────────────────────────────────────
-function IncomeModal({ income, onSave, onClose, dark }: { income:number; onSave:(n:number)=>void; onClose:()=>void; dark:boolean }) {
+// ─── Income Modal — gestión de ingresos del mes ───────────────────────────────
+function IncomeModal({ incomes, monthLabel, totalIncome, onCreate, onUpdate, onDelete, onClose, dark }: {
+  incomes: IncomeResponse[]; monthLabel: string; totalIncome: number;
+  onCreate: (name: string, amount: number) => Promise<void>;
+  onUpdate: (id: number, data: { name?: string; amount?: number }) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+  onClose: () => void; dark: boolean;
+}) {
   const t = dark ? DARK : LIGHT;
-  const [val, setVal] = useState(String(income));
-  const raw = val.replace(/\D/g,"");
-  const ok  = Number(raw) > 0;
+  const [name, setName]           = useState("");
+  const [amountRaw, setAmountRaw] = useState("");
+  const [editingId, setEditingId] = useState<number|null>(null);
+  const [busy, setBusy]           = useState(false);
+  const [err, setErr]             = useState("");
+
+  const amount    = Number(amountRaw);
+  const canSave   = name.trim().length > 0 && amount > 0;
+  const resetForm = () => { setName(""); setAmountRaw(""); setEditingId(null); setErr(""); };
+
+  const submit = async () => {
+    if (!canSave || busy) return;
+    setBusy(true); setErr("");
+    try {
+      if (editingId != null) await onUpdate(editingId, { name: name.trim(), amount });
+      else                   await onCreate(name.trim(), amount);
+      resetForm();
+    } catch (e: unknown) { setErr((e as {message?:string})?.message ?? "No se pudo guardar el ingreso."); }
+    finally { setBusy(false); }
+  };
+  const startEdit = (inc: IncomeResponse) => { setEditingId(inc.id); setName(inc.name); setAmountRaw(String(Math.round(Number(inc.amount)))); setErr(""); };
+  const del = async (id: number) => {
+    setBusy(true); setErr("");
+    try { await onDelete(id); if (editingId === id) resetForm(); }
+    catch (e: unknown) { setErr((e as {message?:string})?.message ?? "No se pudo eliminar el ingreso."); }
+    finally { setBusy(false); }
+  };
+
   return (
     <div style={{position:"fixed",inset:0,zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={onClose}>
       <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",backdropFilter:"blur(6px)"}}/>
-      <div onClick={e=>e.stopPropagation()} style={{position:"relative",width:"100%",maxWidth:400,background:t.card,borderRadius:24,padding:26,boxShadow:"0 24px 64px rgba(0,0,0,.35)",animation:"dpIn .18s ease"}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"relative",width:"100%",maxWidth:440,maxHeight:"calc(100vh - 40px)",overflowY:"auto",background:t.card,borderRadius:24,padding:26,boxShadow:"0 24px 64px rgba(0,0,0,.35)",animation:"dpIn .18s ease"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
           <div>
-            <div style={{fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em"}}>Configurar</div>
-            <div style={{fontSize:19,fontWeight:900,color:t.text}}>Ingreso mensual</div>
+            <div style={{fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em"}}>Ingresos</div>
+            <div style={{fontSize:19,fontWeight:900,color:t.text}}>{monthLabel}</div>
           </div>
           <button onClick={onClose} style={{width:32,height:32,borderRadius:10,border:"none",background:dark?"rgba(255,255,255,.08)":"#f1f5f9",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <Ico name="x" size={14} color={t.muted}/>
           </button>
         </div>
-        <div style={{position:"relative",marginBottom:18}}>
-          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:22,fontWeight:800,color:t.muted}}>$</span>
-          <input type="text" inputMode="numeric" autoFocus placeholder="0"
-            value={raw ? Number(raw).toLocaleString("es-AR") : ""}
-            onChange={e=>setVal(e.target.value.replace(/\D/g,""))}
-            style={{width:"100%",boxSizing:"border-box",background:t.input,border:"2px solid #22c55e",borderRadius:14,paddingLeft:42,paddingRight:14,paddingTop:14,paddingBottom:14,fontSize:26,fontWeight:900,color:t.text,outline:"none",fontVariantNumeric:"tabular-nums"}}
-          />
+
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+          {incomes.length===0 ? (
+            <div style={{textAlign:"center",padding:"16px 0",fontSize:13,color:t.muted,fontWeight:600}}>Todavía no hay ingresos este mes</div>
+          ) : incomes.map(inc => (
+            <div key={inc.id} style={{display:"flex",alignItems:"center",gap:10,background:t.input,border:`1px solid ${t.border}`,borderRadius:12,padding:"10px 12px"}}>
+              <div style={{flex:1,minWidth:0,fontSize:14,fontWeight:700,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{inc.name}</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#22c55e",fontVariantNumeric:"tabular-nums"}}>{fmt(Number(inc.amount))}</div>
+              <button onClick={()=>startEdit(inc)} disabled={busy} style={{width:28,height:28,borderRadius:8,border:"none",background:dark?"rgba(255,255,255,.06)":"#eef2f7",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ico name="pencil" size={13} color={t.muted}/></button>
+              <button onClick={()=>del(inc.id)} disabled={busy} style={{width:28,height:28,borderRadius:8,border:"none",background:dark?"rgba(239,68,68,.12)":"#fef2f2",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ico name="trash" size={13} color="#ef4444"/></button>
+            </div>
+          ))}
         </div>
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${t.border}`,background:"transparent",color:t.muted,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancelar</button>
-          <button onClick={()=>{if(ok){onSave(Number(raw));onClose();}}} disabled={!ok}
-            style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:ok?"linear-gradient(135deg,#22c55e,#16a34a)":(dark?"#1e2130":"#e2e8f0"),color:ok?"white":t.muted,fontWeight:800,fontSize:14,cursor:ok?"pointer":"default",boxShadow:ok?"0 4px 14px rgba(34,197,94,.4)":"none",transition:"all .2s",fontFamily:"inherit"}}>
-            Guardar
-          </button>
+
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",borderRadius:12,background:dark?"rgba(34,197,94,.08)":"#f0fdf4",marginBottom:16}}>
+          <span style={{fontSize:12,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Total del mes</span>
+          <span style={{fontSize:18,fontWeight:900,color:"#22c55e",fontVariantNumeric:"tabular-nums"}}>{fmt(totalIncome)}</span>
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <input type="text" placeholder="Nombre (ej: Sueldo, Venta)" value={name} onChange={e=>setName(e.target.value)}
+            style={{width:"100%",boxSizing:"border-box",background:t.input,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 14px",fontSize:14,color:t.text,outline:"none",fontFamily:"inherit"}}/>
+          <div style={{position:"relative"}}>
+            <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:18,fontWeight:800,color:t.muted}}>$</span>
+            <input type="text" inputMode="numeric" placeholder="0" value={amountRaw ? Number(amountRaw).toLocaleString("es-AR") : ""} onChange={e=>setAmountRaw(e.target.value.replace(/\D/g,""))}
+              style={{width:"100%",boxSizing:"border-box",background:t.input,border:"2px solid #22c55e",borderRadius:12,paddingLeft:40,paddingRight:14,paddingTop:12,paddingBottom:12,fontSize:18,fontWeight:800,color:t.text,outline:"none",fontVariantNumeric:"tabular-nums",fontFamily:"inherit"}}/>
+          </div>
+          {err && <div style={{color:"#ef4444",fontSize:12,fontWeight:700}}>{err}</div>}
+          <div style={{display:"flex",gap:10}}>
+            {editingId!=null && <button onClick={resetForm} disabled={busy} style={{flex:1,padding:"12px",borderRadius:12,border:`1px solid ${t.border}`,background:"transparent",color:t.muted,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cancelar</button>}
+            <button onClick={submit} disabled={!canSave||busy}
+              style={{flex:2,padding:"12px",borderRadius:12,border:"none",background:(canSave&&!busy)?"linear-gradient(135deg,#22c55e,#16a34a)":(dark?"#1e2130":"#e2e8f0"),color:(canSave&&!busy)?"white":t.muted,fontWeight:800,fontSize:14,cursor:(canSave&&!busy)?"pointer":"default",boxShadow:(canSave&&!busy)?"0 4px 14px rgba(34,197,94,.4)":"none",transition:"all .2s",fontFamily:"inherit"}}>
+              {busy ? "Guardando..." : editingId!=null ? "Guardar cambios" : "Agregar ingreso"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -178,8 +231,11 @@ interface AppCtx {
   dark:          boolean;
   wide:          boolean;
   token:         string;
-  income:        number;
-  setIncome:     (n: number) => void;
+  incomes:       IncomeResponse[];
+  totalIncome:   number;
+  addIncome:     (name: string, amount: number) => Promise<void>;
+  editIncome:    (id: number, data: { name?: string; amount?: number }) => Promise<void>;
+  removeIncome:  (id: number) => Promise<void>;
   showIncModal:  boolean;
   setShowIncModal: (b: boolean) => void;
   selectedMonth: string;
@@ -209,7 +265,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return false;
   });
   const [token,          setToken]          = useState("");
-  const [income,         setIncomeState]    = useState(0);
+  const [incomes,        setIncomes]        = useState<IncomeResponse[]>([]);
   const [showIncModal,   setShowIncModal]   = useState(false);
   const [selectedMonth,  setSelectedMonth]  = useState(currentMonthKey());
   const [expenses,       setExpenses]       = useState<ExpenseResponse[]>([]);
@@ -247,23 +303,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { if (token) refetchExp(); }, [token, selectedMonth, refetchExp]);
 
-  // Fetch income
+  // Fetch incomes del mes
   useEffect(() => {
     if (!token) return;
-    usersService.getIncome(selectedMonth, token)
-      .then(d => setIncomeState(Number(d.amount)))
-      .catch(() => {});
+    incomesService.getByMonth(selectedMonth, token)
+      .then(setIncomes)
+      .catch(() => setIncomes([]));
   }, [token, selectedMonth]);
 
-  const setIncome = async (n: number) => {
-    setIncomeState(n);
-    if (token) await usersService.updateIncome(selectedMonth, { amount: n }, token).catch(()=>{});
+  const totalIncome = incomes.reduce((a, i) => a + Number(i.amount), 0);
+
+  const addIncome = async (name: string, amount: number) => {
+    if (!token) return;
+    const created = await incomesService.create({ name, amount, income_date: `${selectedMonth}-01` }, token);
+    setIncomes(prev => [...prev, created]);
+  };
+  const editIncome = async (id: number, data: { name?: string; amount?: number }) => {
+    if (!token) return;
+    const updated = await incomesService.update(id, data, token);
+    setIncomes(prev => prev.map(i => i.id === id ? updated : i));
+  };
+  const removeIncome = async (id: number) => {
+    if (!token) return;
+    await incomesService.remove(id, token);
+    setIncomes(prev => prev.filter(i => i.id !== id));
   };
 
   if (!token) return null;
 
   const ctx: AppCtx = {
-    dark, wide, token, income, setIncome,
+    dark, wide, token, incomes, totalIncome, addIncome, editIncome, removeIncome,
     showIncModal, setShowIncModal,
     selectedMonth, setSelectedMonth,
     expenses, setExpenses, loadingExp, errorExp, refetchExp,
@@ -285,8 +354,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {!hasSide && <BottomNav dark={dark}/>}
         {showIncModal && (
           <IncomeModal
-            income={income}
-            onSave={setIncome}
+            incomes={incomes}
+            monthLabel={keyLabel(selectedMonth)}
+            totalIncome={totalIncome}
+            onCreate={addIncome}
+            onUpdate={editIncome}
+            onDelete={removeIncome}
             onClose={()=>setShowIncModal(false)}
             dark={dark}
           />

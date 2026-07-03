@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { useApp } from "../dashboard/layout";
 import { useRouter } from "next/navigation";
 import { DARK, LIGHT, fmt, currentMonthKey } from "@/lib/constants";
-import { authService, usersService } from "@/lib/services";
-import type { UserResponse, MonthlyIncomeResponse } from "@/types/api";
+import { authService, usersService, incomesService } from "@/lib/services";
+import type { UserResponse } from "@/types/api";
 import type { ApiError } from "@/lib/api";
 import { User, Mail, Lock, Shield, LogOut, Pencil, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 
@@ -43,7 +43,7 @@ export default function PerfilPage() {
     const month = currentMonthKey();
     Promise.all([
       usersService.getProfile(token).then(p=>{ setProfile(p); }).catch(()=>setProfile(null)),
-      usersService.getIncome(month, token).then(i => setIncome(Number(i.amount))).catch(() => setIncome(0))
+      incomesService.getByMonth(month, token).then(list => setIncome(list.reduce((a,i)=>a+Number(i.amount),0))).catch(() => setIncome(0))
     ]).finally(()=>setLoading(false));
   },[token]);
 

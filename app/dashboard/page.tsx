@@ -41,7 +41,7 @@ function Icon({ name, size = 20, color = "currentColor" }: { name:string; size?:
 }
 
 export default function DashboardPage() {
-  const { dark, wide, token, income, setShowIncModal, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
+  const { dark, wide, token, totalIncome, setShowIncModal, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
   const t   = dark ? DARK : LIGHT;
   const pad = wide ? "28px" : "16px";
 
@@ -81,7 +81,7 @@ export default function DashboardPage() {
 
   const monthExpenses = expenses.filter(e => e.expense_date.startsWith(selectedMonth));
   const totalSpent    = monthExpenses.reduce((a,e) => a + Number(e.amount), 0);
-  const balance       = income - totalSpent;
+  const balance       = totalIncome - totalSpent;
   const isNow         = selectedMonth === NOW_KEY;
 
   // Available months from expenses, always including the current selection
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                 </div>
                 {isNow&&<button onClick={()=>setShowIncModal(true)} style={{width:26,height:26,borderRadius:8,border:"none",background:dark?"rgba(255,255,255,.06)":"#f1f5f9",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="pencil" size={12} color={t.muted}/></button>}
               </div>
-              <div style={{fontSize:22,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(income)}</div>
+              <div style={{fontSize:22,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(totalIncome)}</div>
             </div>
             <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:18,padding:"18px"}}>
               <div style={{fontSize:10,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Balance</div>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                 <span style={{fontSize:10,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em"}}>Ingresos</span>
                 {isNow&&<button onClick={()=>setShowIncModal(true)} style={{width:22,height:22,borderRadius:7,border:"none",background:dark?"rgba(255,255,255,.06)":"#f1f5f9",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="pencil" size={10} color={t.muted}/></button>}
               </div>
-              <div style={{fontSize:16,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(income)}</div>
+              <div style={{fontSize:16,fontWeight:900,color:t.text,fontVariantNumeric:"tabular-nums"}}>{fmt(totalIncome)}</div>
             </div>
             <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:18,padding:"14px 16px"}}>
               <div style={{fontSize:10,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Balance</div>

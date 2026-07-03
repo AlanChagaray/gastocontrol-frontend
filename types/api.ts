@@ -32,5 +32,6 @@ export interface ExpenseSummaryResponse {
   month: string; total: string; count: number; income: string; balance: string;
   by_category: CategorySummary[];
 }
-export interface MonthlyIncomeResponse { year: number; month: number; amount: string; }
-export interface UpdateIncomeRequest { amount: number; }
+export interface IncomeResponse { id: number; name: string; amount: string; income_date: string; }
+export interface CreateIncomeRequest { name: string; amount: number; income_date: string; }
+export interface UpdateIncomeRequest { name?: string; amount?: number; income_date?: string; }
