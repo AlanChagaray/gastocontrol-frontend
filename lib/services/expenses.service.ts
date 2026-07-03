@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { ExpenseResponse, ExpenseSummaryResponse, CreateExpenseRequest } from "@/types/api";
+import type { ExpenseResponse, ExpenseSummaryResponse, CreateExpenseRequest, UpdateExpenseRequest } from "@/types/api";
 
 export const expensesService = {
   // GET /expenses/byMonth?date=YYYY-MM
@@ -13,6 +13,10 @@ export const expensesService = {
   // POST /expenses
   create: (data: CreateExpenseRequest, token: string) =>
     api.post<ExpenseResponse>("/expenses", data, { token }),
+
+  // PATCH /expenses/:id
+  update: (id: number, data: UpdateExpenseRequest, token: string) =>
+    api.patch<ExpenseResponse>(`/expenses/${id}`, data, { token }),
 
   // DELETE /expenses/:id
   remove: (id: number, token: string) =>

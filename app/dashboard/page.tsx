@@ -3,12 +3,15 @@
  * Dashboard — replica exacta del DashboardPage del demo
  * Lee estado desde AppContext (layout.tsx)
  */
+import { useState, useEffect } from "react";
 import { useApp } from "./layout";
 import { DARK, LIGHT, fmt, keyLabel } from "@/lib/constants";
 import { getLucideIcon } from "@/lib/lucide-icons";
+import { expensesService, categoriesService } from "@/lib/services";
+import type { ExpenseResponse, CategoryResponse } from "@/types/api";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import type { LucideIcon } from "lucide-react";
-import { ChevronLeft, ChevronRight, Clock, TrendingUp, TrendingDown, Pencil, Receipt, BarChart as LucideBarChart, ShoppingCart, Truck, Wrench, UtensilsCrossed, Star, HeartPulse, MoreHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, TrendingUp, TrendingDown, Pencil, Receipt, BarChart as LucideBarChart, ShoppingCart, Truck, Wrench, UtensilsCrossed, Star, HeartPulse, MoreHorizontal, X } from "lucide-react";
 
 const MONTHS_SHT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const NOW_KEY = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })();
@@ -38,9 +41,43 @@ function Icon({ name, size = 20, color = "currentColor" }: { name:string; size?:
 }
 
 export default function DashboardPage() {
-  const { dark, wide, token, income, setShowIncModal, selectedMonth, setSelectedMonth, expenses, loadingExp, errorExp, refetchExp } = useApp();
+  const { dark, wide, token, income, setShowIncModal, selectedMonth, setSelectedMonth, expenses, setExpenses, loadingExp, errorExp, refetchExp } = useApp();
   const t   = dark ? DARK : LIGHT;
   const pad = wide ? "28px" : "16px";
+
+  const PAGE = 7;
+  const [page,     setPage]     = useState(0);
+  const [cats,     setCats]     = useState<CategoryResponse[]>([]);
+  const [editing,  setEditing]  = useState<ExpenseResponse|null>(null);
+  const [fAmount,  setFAmount]  = useState("");
+  const [fMerchant,setFMerchant]= useState("");
+  const [fCatId,   setFCatId]   = useState<number|null>(null);
+  const [saving,   setSaving]   = useState(false);
+  const [editErr,  setEditErr]  = useState<string|null>(null);
+
+  useEffect(()=>{ if(token) categoriesService.getCategories(token).then(setCats).catch(()=>{}); },[token]);
+  useEffect(()=>{ setPage(0); },[selectedMonth]);
+
+  const openEdit = (exp: ExpenseResponse) => {
+    setEditing(exp);
+    setFAmount(String(Math.round(Number(exp.amount))));
+    setFMerchant(exp.merchant||"");
+    setFCatId(exp.category.id);
+    setEditErr(null);
+  };
+  const saveEdit = async () => {
+    if(!editing) return;
+    const amt = Number(fAmount.replace(/\D/g,""));
+    if(!(amt>0)||fCatId==null){ setEditErr("Ingresá un monto válido y una categoría."); return; }
+    setSaving(true); setEditErr(null);
+    try {
+      await expensesService.update(editing.id, { amount:amt, merchant:fMerchant||undefined, category_id:fCatId }, token);
+      const chosen = cats.find(c=>c.id===fCatId) || editing.category;
+      setExpenses(prev => prev.map(e => e.id===editing.id ? {...e, amount:String(amt), merchant:fMerchant, category:chosen} : e));
+      setEditing(null);
+    } catch { setEditErr("No se pudo guardar el gasto. Intentá de nuevo."); }
+    finally { setSaving(false); }
+  };
 
   const monthExpenses = expenses.filter(e => e.expense_date.startsWith(selectedMonth));
   const totalSpent    = monthExpenses.reduce((a,e) => a + Number(e.amount), 0);
@@ -210,31 +247,70 @@ export default function DashboardPage() {
 
         {/* Recents */}
         <div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em"}}>{isNow?"Últimos gastos":"Gastos del mes"}</div>
-          </div>
           {monthExpenses.length===0 ? (
             <div style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"24px",textAlign:"center"}}><div style={{fontSize:13,color:t.muted,fontWeight:600}}>Sin gastos registrados</div></div>
           ) : (
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {monthExpenses.slice(0,5).map(exp => {
+              {monthExpenses.slice(page*PAGE, page*PAGE+PAGE).map(exp => {
                 const CatIcon  = getLucideIcon(exp.category.icon);
                 const catColor = exp.category.color || "#94a3b8";
                 return (
-                  <div key={exp.id} style={{background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"11px 14px",display:"flex",alignItems:"center",gap:12,boxShadow:dark?"none":"0 1px 3px rgba(0,0,0,.04)"}}>
+                  <button key={exp.id} type="button" onClick={()=>openEdit(exp)} style={{textAlign:"left",width:"100%",background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"11px 14px",display:"flex",alignItems:"center",gap:12,boxShadow:dark?"none":"0 1px 3px rgba(0,0,0,.04)",cursor:"pointer",fontFamily:"inherit"}}>
                     <div style={{width:42,height:42,borderRadius:12,flexShrink:0,background:`${catColor}22`,display:"flex",alignItems:"center",justifyContent:"center"}}><CatIcon size={19} color={catColor}/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:14,color:t.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exp.merchant||exp.category.name}</div>
-                      <div style={{fontSize:11,color:t.muted,marginTop:2,fontWeight:600}}>{exp.category.name} · {new Date(exp.expense_date+"T12:00:00").toLocaleDateString("es-AR",{day:"2-digit",month:"short"})}</div>
+                      <div style={{fontSize:11,color:t.muted,marginTop:2,fontWeight:600}}>{new Date(exp.expense_date+"T12:00:00").toLocaleDateString("es-AR",{day:"2-digit",month:"short"})}</div>
                     </div>
                     <div style={{fontWeight:800,fontSize:14,color:t.text,flexShrink:0,fontVariantNumeric:"tabular-nums"}}>{fmt(Number(exp.amount))}</div>
-                  </div>
+                  </button>
                 );
               })}
+              {monthExpenses.length>PAGE && (()=>{ const total=Math.ceil(monthExpenses.length/PAGE); return (
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginTop:4}}>
+                  <button onClick={()=>setPage(p=>Math.max(0,p-1))} disabled={page===0} style={{width:32,height:32,borderRadius:10,border:`1px solid ${t.border}`,background:t.card,cursor:page===0?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:page===0?.3:1}}><ChevronLeft size={15} color={t.text}/></button>
+                  <span style={{fontSize:12,fontWeight:700,color:t.muted,fontVariantNumeric:"tabular-nums"}}>{page+1}/{total}</span>
+                  <button onClick={()=>setPage(p=>Math.min(total-1,p+1))} disabled={page>=total-1} style={{width:32,height:32,borderRadius:10,border:`1px solid ${t.border}`,background:t.card,cursor:page>=total-1?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:page>=total-1?.3:1}}><ChevronRight size={15} color={t.text}/></button>
+                </div>
+              );})()}
             </div>
           )}
         </div>
       </div>
+
+      {editing && (
+        <div style={{position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(15,23,42,.54)",padding:16}} onClick={()=>!saving&&setEditing(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"min(560px,100%)",maxHeight:"calc(100vh - 32px)",overflowY:"auto",background:t.card,border:`1px solid ${t.border}`,borderRadius:24,boxShadow:"0 28px 80px rgba(15,23,42,.22)",padding:24}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:18}}>
+              <div style={{fontSize:18,fontWeight:900,color:t.text}}>Editar gasto</div>
+              <button type="button" onClick={()=>setEditing(null)} style={{width:38,height:38,borderRadius:12,border:"none",background:dark?"rgba(255,255,255,.06)":"#f1f5f9",cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><X size={18} color={t.muted}/></button>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{display:"block",fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Monto</label>
+              <div style={{position:"relative"}}>
+                <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:20,fontWeight:800,color:t.muted}}>$</span>
+                <input inputMode="numeric" value={fAmount?Number(fAmount).toLocaleString("es-AR"):""} onChange={e=>setFAmount(e.target.value.replace(/\D/g,""))} style={{width:"100%",boxSizing:"border-box",background:t.input,border:`2px solid ${t.border}`,borderRadius:12,padding:"12px 14px 12px 40px",fontSize:18,fontWeight:800,color:t.text,outline:"none",fontVariantNumeric:"tabular-nums",fontFamily:"inherit"}}/>
+              </div>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{display:"block",fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Comercio (opcional)</label>
+              <input value={fMerchant} onChange={e=>setFMerchant(e.target.value)} placeholder="Nombre del comercio..." style={{width:"100%",boxSizing:"border-box",background:t.input,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 14px",fontSize:14,color:t.text,outline:"none",fontFamily:"inherit"}}/>
+            </div>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Categoría</div>
+              <div style={{display:"grid",gridTemplateColumns:`repeat(${wide?6:3},1fr)`,gap:8}}>
+                {cats.map(cat=>{ const sel=fCatId===cat.id; const color=cat.color||"#3b82f6"; const CIcon=getLucideIcon(cat.icon); return (
+                  <button key={cat.id} type="button" onClick={()=>setFCatId(cat.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"10px 4px",borderRadius:14,border:`2px solid ${sel?color+"60":t.border}`,background:sel?color+"18":t.card,cursor:"pointer",fontFamily:"inherit"}}>
+                    <div style={{width:36,height:36,borderRadius:11,background:sel?color+"25":(dark?"rgba(255,255,255,.05)":"#f1f5f9"),display:"flex",alignItems:"center",justifyContent:"center"}}><CIcon size={17} color={sel?color:t.muted}/></div>
+                    <span style={{fontSize:10,fontWeight:sel?800:600,color:sel?color:t.label,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%"}}>{cat.name}</span>
+                  </button>
+                );})}
+              </div>
+            </div>
+            {editErr && <div style={{color:"#ef4444",fontSize:12,fontWeight:700,marginBottom:14}}>{editErr}</div>}
+            <button type="button" onClick={saveEdit} disabled={saving} style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"white",fontWeight:800,fontSize:15,cursor:saving?"wait":"pointer",opacity:saving?.7:1,fontFamily:"inherit"}}>{saving?"Guardando...":"Guardar cambios"}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

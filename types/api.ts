@@ -23,6 +23,9 @@ export interface ExpenseResponse {
 export interface CreateExpenseRequest {
   category_id: number; amount: number; merchant?: string; expense_date: string; notes?: string;
 }
+export interface UpdateExpenseRequest {
+  category_id?: number; amount?: number; merchant?: string; expense_date?: string; notes?: string;
+}
 
 export interface CategorySummary { category: CategoryResponse; total: string; count: number; percentage: number; }
 export interface ExpenseSummaryResponse {
