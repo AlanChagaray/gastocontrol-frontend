@@ -190,7 +190,7 @@ export default function AgregarPage() {
           )}
         </div>
       </div>
-      <button onClick={handleSave} disabled={!isValid||loading} style={{padding:"16px",borderRadius:16,border:"none",cursor:isValid?"pointer":"not-allowed",background:isValid?"linear-gradient(135deg,#3b82f6,#1d4ed8)":(dark?"#1e2130":"#e8edf2"),color:isValid?"white":t.muted,fontSize:15,fontWeight:800,opacity:isValid?1:.5,boxShadow:isValid?"0 4px 16px rgba(59,130,246,.4)":"none",transition:"all .2s",fontFamily:"inherit"}}>
+      <button onClick={handleSave} disabled={!isValid||loading} style={{padding:"16px",borderRadius:16,border:"none",cursor:isValid?"pointer":"not-allowed",background:isValid?"linear-gradient(135deg,#22c55e,#16a34a)":(dark?"#1e2130":"#e8edf2"),color:isValid?"white":t.muted,fontSize:15,fontWeight:800,opacity:isValid?1:.5,boxShadow:isValid?"0 4px 16px rgba(34,197,94,.4)":"none",transition:"all .2s",fontFamily:"inherit"}}>
         {loading?"Guardando...":btnLabel}
       </button>
       {categoryModalOpen && (

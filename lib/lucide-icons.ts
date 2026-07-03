@@ -27,6 +27,10 @@ import {
   ShieldCheck,         // Seguros
   CreditCard,          // Créditos
   PawPrint,            // Mascotas
+  Lightbulb,           // Luz
+  Flame,               // Gas
+  Droplets,            // Agua
+  TvMinimalPlay,       // Streaming
 } from "lucide-react";
 
 export const LUCIDE_CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -53,6 +57,10 @@ export const LUCIDE_CATEGORY_ICONS: Record<string, LucideIcon> = {
   shieldCheck: ShieldCheck,
   creditCard: CreditCard,
   pawPrint: PawPrint,
+  lightbulb: Lightbulb,
+  flame: Flame,
+  droplets: Droplets,
+  tvMinimalPlay: TvMinimalPlay,
   // Alias de los slugs que usa el backend (seeder/factory): food/transport/entertainment/shopping/health/other
   food: UtensilsCrossed,
   transport: Car,
@@ -82,6 +90,7 @@ export const ICON_OPTIONS = [
   { id: "gift", name: "Regalos" },
   { id: "music", name: "Música" },
   { id: "plane", name: "Viajes" },
+  { id: "tvMinimalPlay", name: "Streaming" },
   { id: "more", name: "Otros" },
 ];
 
