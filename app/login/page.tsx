@@ -70,7 +70,7 @@ export default function LoginPage() {
           <p style={{fontSize:13,color:"#64748b",margin:"6px 0 0"}}>Iniciá sesión para continuar</p>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
-          <button style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"13px",borderRadius:14,border:"1px solid #e2e8f0",background:"white",cursor:"pointer",fontWeight:700,fontSize:14,color:"#374151",boxShadow:"0 1px 3px rgba(0,0,0,.07)",fontFamily:"inherit"}}><Ico name="google" size={18}/> Continuar con Google</button>
+          <button type="button" onClick={()=>{ window.location.href = authService.googleRedirectUrl(); }} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"13px",borderRadius:14,border:"1px solid #e2e8f0",background:"white",cursor:"pointer",fontWeight:700,fontSize:14,color:"#374151",boxShadow:"0 1px 3px rgba(0,0,0,.07)",fontFamily:"inherit"}}><Ico name="google" size={18}/> Continuar con Google</button>
           <div style={{display:"flex",alignItems:"center",gap:12,margin:"4px 0"}}>
             <div style={{flex:1,height:1,background:"#e2e8f0"}}/>
             <span style={{fontSize:12,fontWeight:600,color:"#94a3b8"}}>o continuá con email</span>
