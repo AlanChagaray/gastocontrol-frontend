@@ -85,7 +85,7 @@ export default function RegisterPage() {
     if (!accepted) { setErr("Debés aceptar los Términos de uso y la Política de privacidad."); return; }
     setLoading(true); setErr("");
     try {
-      await authService.register({ first_name:form.first_name, last_name:form.last_name, email:form.email, password:form.pw, password_confirmation: form.pwConfirm });
+      await authService.register({ name:`${form.first_name} ${form.last_name}`.trim(), email:form.email, password:form.pw, password_confirmation: form.pwConfirm });
       router.push(`/confirm?email=${encodeURIComponent(form.email)}`);
     } catch(e: unknown) {
       const err = e as ApiError;

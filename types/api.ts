@@ -8,7 +8,7 @@ export interface UserResponse {
 export interface AuthResponse { token: string; user: UserResponse; }
 export interface MessageResponse { message: string; }
 export interface LoginRequest { email: string; password: string; }
-export interface RegisterRequest { first_name: string; last_name: string; email: string; password: string; password_confirmation: string; }
+export interface RegisterRequest { name: string; email: string; password: string; password_confirmation: string; }
 export interface UpdateProfileRequest { first_name: string; last_name: string; }
 export interface ChangePasswordRequest { current_password: string; password: string; password_confirmation: string; }
 
