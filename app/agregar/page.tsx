@@ -7,6 +7,7 @@ import { expensesService, categoriesService } from "@/lib/services";
 import { ICON_OPTIONS, getLucideIcon } from "@/lib/lucide-icons";
 import { DatePicker } from "@/lib/helpers";
 import type { CategoryResponse } from "@/types/api";
+import type { ApiError } from "@/lib/api";
 
 function Ico({ name, size=20, color="currentColor" }: { name:string; size?:number; color?:string }) {
   const p = { fill:"none", stroke:color, strokeWidth:2, strokeLinecap:"round" as const, strokeLinejoin:"round" as const };
@@ -74,9 +75,11 @@ export default function AgregarPage() {
 
   const saveCategory = async () => {
     if (!token) return;
-    const name = categoryNameInput.trim();
+    // El nombre es opcional: si no se ingresa, se usa el del ícono seleccionado.
+    const fallback = ICON_OPTIONS.find(o => o.id === categoryIconInput)?.name ?? "";
+    const name = categoryNameInput.trim() || fallback;
     if (!name) {
-      setCategoryModalError("El nombre es obligatorio.");
+      setCategoryModalError("Elegí un ícono o ingresá un nombre.");
       return;
     }
     setCategoryModalLoading(true);
@@ -88,8 +91,10 @@ export default function AgregarPage() {
       setCategory(saved);
       closeCategoryModal();
     } catch (err) {
-      console.error(err);
-      setCategoryModalError("No se pudo guardar la categoría. Intentá de nuevo.");
+      const e = err as ApiError;
+      // Reflejar el error de validación del backend (ej. nombre ya existente).
+      const msg = e?.errors?.name?.[0] || (e?.status === 422 ? e?.message : "") || "No se pudo guardar la categoría. Intentá de nuevo.";
+      setCategoryModalError(msg);
     } finally {
       setCategoryModalLoading(false);
     }
@@ -205,8 +210,8 @@ export default function AgregarPage() {
             </div>
             <div style={{background:t.input,border:`1px solid ${t.border}`,borderRadius:20,padding:18}}>
               <div style={{marginBottom:16}}>
-                <label style={{display:"block",fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Nombre de categoría</label>
-                <input value={categoryNameInput} onChange={e=>setCategoryNameInput(e.target.value)} placeholder="Ej. Supermercado" style={{width:"100%",boxSizing:"border-box",background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"12px 14px",fontSize:14,color:t.text,outline:"none",fontFamily:"inherit"}}/>
+                <label style={{display:"block",fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Nombre de categoría (opcional)</label>
+                <input value={categoryNameInput} onChange={e=>setCategoryNameInput(e.target.value)} placeholder={ICON_OPTIONS.find(o=>o.id===categoryIconInput)?.name ?? "Nombre de la categoría"} style={{width:"100%",boxSizing:"border-box",background:t.card,border:`1px solid ${t.border}`,borderRadius:14,padding:"12px 14px",fontSize:14,color:t.text,outline:"none",fontFamily:"inherit"}}/>
               </div>
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,fontWeight:800,color:t.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Ícono</div>
